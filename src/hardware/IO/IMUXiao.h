@@ -1,18 +1,18 @@
 /*/**
- * \file Teensy.h
- * \author Justin Fong
- * \brief  Class representing a Robotous Force Torque sensor. 
+ * \file IMUXiao.h
+ * \author JQ Loh , Ming Rui Sun
+ * \brief  Class representing IMU measurements from BNO055 - Seeeduino XIAO. 
  * 
  *    NOTE: this is not a CANOpen Device, and the PDO-like messages are send on non-standard COB-IDs
  * 
  * \version 0.1
- * \date 2021-01-12
- * \copyright Copyright (c) 2021
+ * \date 2024-05-20
+ * \copyright Copyright (c) 2024
  *
  */
 
-#ifndef XIAOESP32_H_INCLUDED
-#define XIAOESP32_H_INCLUDED
+#ifndef IMUXIAO_H_INCLUDED
+#define IMUXIAO_H_INCLUDED
 
 #include <CANopen.h>
 #include <CO_command.h>
@@ -25,8 +25,9 @@
 #include "RPDO.h"
 #include "TPDO.h"
 
-class XiaoESP : public InputDevice {
+class IMUXiao : public InputDevice {
    private:
+        bool initialised;
         int commandID;     //   COB-ID of command messages    
         int responseID1; // COB-ID of 1st received message
         int responseID2;  // COB-ID of 2nd received message
@@ -35,14 +36,6 @@ class XiaoESP : public InputDevice {
 
         bool streaming=false; 
 
-        // Raw Data store
-        // Because the Robotous people are stupid, one of the variables is split over the two messages. So we have to
-        // store the raw data and then convert it
-        // RespH: [D1 D2 D3 D4 D5 D6 D7 D8]
-        // [0x10, Fx_u, Fx_l, Fy_u, Fy_l, Fz_u, Fz_l, Tx_u] 
-        // RespL: [D9 D10 D11 D12 D13 D14 D15 D16]
-        // [Tx_l, Ty_u, Ty_l, Tz_u, Tz_l, OL_status, 0x00, 0x00]
-
         // Objects representing the PDOs (used to create the PDOs in the OD)
         RPDO *rpdo1;
         RPDO *rpdo2;
@@ -50,8 +43,7 @@ class XiaoESP : public InputDevice {
         RPDO *rpdo4;
 
         /// Raw data - these variables are linked to the PDOs
-        UNSIGNED8 rawData_A[32] = {0};
-        UNSIGNED8 rawData_B[32] = {0};
+        UNSIGNED8 rawIMUData[32] = {0};
         UNSIGNED8 cmdData = 0;
         UNSIGNED32 cmdDataPad = 0; // This is to make sure that the message is the full 8 bytes because of Robotous' not-CANopen implementation
 
@@ -59,34 +51,39 @@ class XiaoESP : public InputDevice {
         UNSIGNED8 lengthData =8; // 8 for each of the RPDOs - I cheat and reuse this variable
         UNSIGNED8 lengthCmd = 2; // Second one is for padding
 
+        // BNO 9-DOF measurement ranges
         float accl_range = 100.;
         float gyro_range = 2000.;
-        float oren_roll_range = 180.;
-        float oren_pitch_range = 90.;
-        float oren_yaw_range = 360.;
-        float oren_quat_range = 1.;
+        float orien_roll_range = 180.;
+        float orien_pitch_range = 90.;
+        float orien_yaw_range = 360.;
+        float orien_quat_range = 1.;
 
         // OD Parameters
         // Will need to be modified to take into number of items, data size and location
         // Data size and number of items will be constant, function will be used to change location
         // Data variables
-        Eigen::VectorXd accl_A;
-        Eigen::VectorXd accl_grav_A;
-        Eigen::VectorXd orient_A;
-        Eigen::VectorXd quat_A;
+        Eigen::VectorXd accl;
+        Eigen::VectorXd accl_grav;
+        Eigen::VectorXd orient;
+        Eigen::VectorXd quat;
 
+        /**
+         * \brief map message to actual sensor readings
+         * 
+         */
         float range_mapping(float msg_val, float sensor_range, float msg_max);
 
        public:
         /**
-        * \brief Sets up the Robotous sensor, including data storage and setting up PDOs
+        * \brief Sets up the IMU object, including data storage and setting up PDOs
         *
         * \param commandID_ the COB-ID used to send messages to this device
         * \param responseID1_ the COB-ID of the first data message (sent from this device) 
         * \param responseID2_ the COB-ID of the second data message (sent from this device) 
         */
-        XiaoESP(int responseID1_, int responseID2_, int responseID3_, int responseID4_);
-        ~XiaoESP();
+        IMUXiao(int responseID1_, int responseID2_, int responseID3_, int responseID4_);
+        ~IMUXiao();
 
         /**
          * \brief Sets up the receiving PDOs (note: will have issues if commands are sent, as the response are on the same COB-IDs)
@@ -95,37 +92,39 @@ class XiaoESP : public InputDevice {
         bool configureMasterPDOs();
 
         /**
-         * \brief Updates the forces from the raw data
+         * \brief Updates the IMU readings from the raw data
          * 
          */
         void updateInput();
 
         /**
-         * \brief Get the Forces object
+         * \brief Get the acceleration object
          * 
-         * \return Eigen::VectorXd X,Y,Z forces
+         * \return Eigen::VectorXd X,Y,Z acceleration
          */
         Eigen::VectorXd& getAccl();
 
         /**
-         * \brief Get the Forces object
+         * \brief Get the acceleration_grav object
          * 
          * \return Eigen::VectorXd 
          */
         Eigen::VectorXd& getAcclGrav();
 
         /**
-         * \brief Get the Forces object
+         * \brief Get the orientation object
          * 
          * \return Eigen::VectorXd 
          */
         Eigen::VectorXd& getOrient();
 
         /**
-         * \brief Get the Forces object
+         * \brief Get the quaternion object
          * 
          * \return Eigen::VectorXd 
          */
         Eigen::VectorXd& getQuat();
+
+
 };
 #endif

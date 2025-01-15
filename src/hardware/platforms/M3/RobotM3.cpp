@@ -24,7 +24,7 @@ RobotM3::RobotM3(string robot_name, string yaml_config_file) :  Robot(robot_name
     inputs.push_back(joystick = new Joystick(1));
 
     // IMU 
-    inputs.push_back(xiao = new XiaoESP(xiao_accl_id,xiao_accl_grav_id,xiao_orient_id,xiao_quat_id));
+    inputs.push_back(imu = new IMUXiao(imu_accl_id,imu_accl_grav_id,imu_orient_id,imu_quat_id));
 
     last_update_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() / 1e6;
 }
@@ -37,7 +37,7 @@ RobotM3::~RobotM3() {
     joints.clear();
     delete keyboard;
     delete joystick;
-    delete xiao;
+    delete imu;
     inputs.clear();
     spdlog::debug("RobotM3 deleted");
 }
@@ -571,9 +571,9 @@ setMovementReturnCode_t RobotM3::setEndEffForceWithCompensation(VM3 F, bool fric
     return setJointTorque(J().transpose() * F + tau_g + tau_f);
 }
 
-const VX& RobotM3::getXiaoData(XiaoESP *xiao,int data_id){
-    if (data_id == 0)    return xiao->getAccl();
-    else if (data_id == 1)  return xiao->getAcclGrav();
-    else if (data_id == 2)    return  xiao->getOrient();
-    else return  xiao->getQuat();
+const VX& RobotM3::getIMUData(IMUXiao *imu,int data_id){
+    if (data_id == 0)    return imu->getAccl();
+    else if (data_id == 1)  return imu->getAcclGrav();
+    else if (data_id == 2)    return  imu->getOrient();
+    else return  imu->getQuat();
 }
