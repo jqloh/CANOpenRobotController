@@ -18,6 +18,7 @@
 #include "Joystick.h"
 #include "Robot.h"
 #include "SignalProcessing.h"
+#include "XiaoESP32.h"
 
 
 typedef Eigen::Vector3d VM3; //!< Convenience alias for double  Vector of length 3
@@ -86,6 +87,11 @@ class RobotM3 : public Robot {
 
     std::vector<double> qLimits = {/*q1_min*/ -45 * M_PI / 180.,/*q1_max*/ 45 * M_PI / 180., /*q2_min*/ -15 * M_PI / 180., /*q2_max*/70 * M_PI / 180., /*q3_min*/ 0 * M_PI / 180., /*q3_max*/ 95 * M_PI / 180.}; //!< Joints limits (in rad)
     VM3 qCalibration = {-38*M_PI/180., 70*M_PI/180., 95*M_PI/180.};             //!< Calibration configuration: posture in which the robot is when using the calibration procedure
+    
+    int xiao_accl_id = 2032;  // 0x262
+    int xiao_accl_grav_id = 2033;
+    int xiao_orient_id = 2034;
+    int xiao_quat_id = 2035;
     /*@}*/
 
     M3Tool *endEffTool; //!< End-effector representation (transformation and mass)
@@ -115,6 +121,7 @@ class RobotM3 : public Robot {
 
     Keyboard *keyboard;
     Joystick *joystick;
+    XiaoESP *xiao;
 
     /**
        * \brief Initialises all joints to position control mode.
@@ -249,5 +256,7 @@ class RobotM3 : public Robot {
     setMovementReturnCode_t setEndEffForceWithCompensation(VM3 F, bool friction_comp=true);
 
     void changeTool(M3Tool *new_tool) {endEffTool=new_tool; std::cout << "RobotM3::changeTool: new tool: " << endEffTool->name << std::endl;}
+
+    const VX& getXiaoData(XiaoESP *xiao, int data_id);
 };
 #endif /*RobotM3_H*/
